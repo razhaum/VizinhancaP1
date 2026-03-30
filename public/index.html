@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vizinhança Solidária Digital</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+
+    :root {
+      --bg: #f4f7fb;
+      --primary: #0f2d52;
+      --primary-soft: #173d6d;
+      --danger: #d62839;
+      --success: #1f9d55;
+      --text: #1f2937;
+      --text-soft: #6b7280;
+      --white: #ffffff;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+      --radius: 18px;
+      --border: #e5e7eb;
+    }
+
+    body {
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+}
+
+    .app {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+    .info-card,
+.quick-item,
+.action-btn,
+.topbar,
+.quick-sheet,
+.bottom-nav {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+    .topbar {
+      background: linear-gradient(135deg, var(--primary), var(--primary-soft));
+      color: var(--white);
+      flex-shrink: 0;
+      padding: 16px 18px 14px 18px;
+      box-shadow: var(--shadow);
+      position: relative;
+      z-index: 20;
+    }
+
+    .topbar-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .brand h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .brand p {
+      font-size: 0.82rem;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+
+    .status-box {
+      text-align: right;
+      min-width: 110px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.14);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+    }
+
+    .clock {
+      margin-top: 8px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      opacity: 0.95;
+    }
+
+    .map-wrapper {
+  position: relative;
+  height: calc(100vh - 86px - 72px);
+  background: #dbe4ee;
+  overflow: hidden;
+}
+
+#mapa {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+    .map-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #6b7280;
+      font-size: 1rem;
+      background:
+        linear-gradient(135deg, rgba(15,45,82,0.08), rgba(15,45,82,0.02)),
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 38px,
+          rgba(0,0,0,0.03) 39px,
+          rgba(0,0,0,0.03) 40px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 38px,
+          rgba(0,0,0,0.03) 39px,
+          rgba(0,0,0,0.03) 40px
+        );
+    }
+
+    .floating-panel {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      z-index: 15;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .info-card {
+      background: rgba(255,255,255,0.98);
+      backdrop-filter: blur(8px);
+      border-radius: 16px;
+      padding: 12px 14px;
+      box-shadow: var(--shadow);
+      width: 210px;
+      pointer-events: auto;
+    }
+
+    .info-card h2 {
+      font-size: 0.86rem;
+      color: var(--text-soft);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .info-card .number {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .info-card .small {
+      margin-top: 4px;
+      font-size: 0.76rem;
+      color: var(--text-soft);
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .action-btn {
+      width: 48px;
+      height: 48px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.96);
+      box-shadow: var(--shadow);
+      font-size: 1.15rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .action-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .action-btn.alert {
+      background: var(--danger);
+      color: white;
+    }
+
+    .action-btn.primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .quick-sheet {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 84px;
+      z-index: 15;
+      background: rgba(255,255,255,0.98);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .quick-sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .quick-sheet-header h3 {
+      font-size: 0.96rem;
+      color: var(--primary);
+    }
+
+    .tag {
+      background: #eef4fb;
+      color: var(--primary);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 600;
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .quick-item {
+      background: #f8fafc;
+      border-radius: 14px;
+      padding: 12px 10px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+
+    .quick-item .icon {
+      font-size: 1.15rem;
+      margin-bottom: 6px;
+    }
+
+    .quick-item .label {
+      font-size: 0.74rem;
+      color: var(--text-soft);
+    }
+
+    .quick-item .value {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 4px;
+    }
+
+    .bottom-nav {
+      height: 72px;
+      background: rgba(255,255,255,0.98);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-shrink: 0;
+      justify-content: space-around;
+      align-items: center;
+      padding-bottom: env(safe-area-inset-bottom);
+      z-index: 20;
+    }
+
+    .nav-item {
+      background: none;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-soft);
+      font-size: 0.72rem;
+      cursor: pointer;
+    }
+
+    .nav-item .nav-icon {
+      font-size: 1.2rem;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 18px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 520px;
+      background: var(--white);
+      border-radius: 22px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+      overflow: hidden;
+      animation: aparecer 0.2s ease;
+    }
+
+    @keyframes aparecer {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-soft));
+      color: white;
+      padding: 18px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h2 {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .close-btn {
+      background: rgba(255,255,255,0.14);
+      border: none;
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      padding: 18px;
+      max-height: 75vh;
+      overflow-y: auto;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 0.95rem;
+      outline: none;
+      background: #fff;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .form-group textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-hint {
+      font-size: 0.76rem;
+      color: var(--text-soft);
+      margin-top: 4px;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 10px;
+      padding: 0 18px 18px 18px;
+    }
+
+    .btn {
+      flex: 1;
+      border: none;
+      border-radius: 14px;
+      padding: 13px 16px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-secondary {
+      background: #eef2f7;
+      color: var(--text);
+    }
+
+    .btn-primary {
+      background: var(--success);
+      color: white;
+    }
+
+    @media (min-width: 768px) {
+      .topbar {
+        padding: 18px 26px;
+
+      }
+
+      .brand h1 {
+        font-size: 1.2rem;
+      }
+
+      .brand p {
+        font-size: 0.9rem;
+      }
+
+      .floating-panel {
+        left: 24px;
+        right: 24px;
+        top: 20px;
+      }
+
+      .info-card {
+        width: 240px;
+      }
+
+      .quick-sheet {
+        left: 24px;
+        right: auto;
+        width: 420px;
+        bottom: 92px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .modal {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <header class="topbar">
+      <div class="topbar-row">
+        <div class="brand">
+          <h1>Vizinhança Solidária Digital</h1>
+          <p>Parque Novo Mundo • Plataforma comunitária de alertas</p>
+        </div>
+
+        <div class="status-box">
+          <div class="status">
+            <span class="status-dot"></span>
+            <span>Online</span>
+          </div>
+          <div class="clock" id="clock">--:--</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="map-wrapper">
+      <div id="mapa">
+      </div>
+
+      <div class="floating-panel">
+        <div class="info-card">
+          <h2>Ocorrências hoje</h2>
+          <div class="number" id="contadorOcorrencias">0</div>
+          <div class="small">Última atualização em tempo real</div>
+        </div>
+
+        <div class="actions">
+          <button class="action-btn alert" title="Acionar alerta" onclick="acionarAlerta()">🚨</button>
+          <button class="action-btn primary" title="Nova ocorrência" onclick="abrirModalOcorrencia()">＋</button>
+          <button class="action-btn" title="Minha localização" onclick="minhaLocalizacao()">📍</button>
+          <button class="action-btn" title="Atualizar mapa" onclick="atualizarMapa()">⟳</button>
+          <button class="action-btn" title="Filtrar ocorrências" onclick="filtrarOcorrencias()">☰</button>
+          <button class="action-btn" title="Sair" onclick="logout()">↩</button>
+        </div>
+      </div>
+
+
+
+    </main>
+    <nav class="bottom-nav">
+      <button class="nav-item active">
+        <span class="nav-icon">🗺️</span>
+        <span>Mapa</span>
+      </button>
+
+      <button class="nav-item" onclick="abrirListaOcorrencias()">
+       <span class="nav-icon">📝</span>
+       <span>Ocorrências</span>
+      </button>
+
+      <button class="nav-item" onclick="abrirAlertas()">
+        <span class="nav-icon">🚨</span>
+        <span>Alertas</span>
+       </button>
+
+      <button class="nav-item" onclick="abrirHistorico()">
+  <span class="nav-icon">🕘</span>
+  <span>Histórico</span>
+</button>
+
+     <button class="nav-item" onclick="abrirPerfil()">
+  <span class="nav-icon">👤</span>
+  <span>Perfil</span>
+</button>
+      </button>
+    </nav>
+  </div>
+
+  <div class="modal-overlay" id="modalOcorrencia">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Registrar ocorrência</h2>
+        <button class="close-btn" onclick="fecharModalOcorrencia()">×</button>
+      </div>
+
+      <form id="formOcorrencia">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="tipoOcorrencia">Tipo de ocorrência</label>
+            <select id="tipoOcorrencia" required>
+              <option value="">Selecione</option>
+              <option value="furto">Furto</option>
+              <option value="roubo">Roubo</option>
+              <option value="suspeita">Pessoa ou veículo suspeito</option>
+              <option value="invasao">Tentativa de invasão</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="dataOcorrencia">Data</label>
+              <input type="date" id="dataOcorrencia" required>
+            </div>
+
+            <div class="form-group">
+              <label for="horaOcorrencia">Hora</label>
+              <input type="time" id="horaOcorrencia" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="localOcorrencia">Local aproximado</label>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+  <button type="button" class="btn btn-secondary" onclick="buscarEndereco()">Buscar local</button>
+</div>
+            <input type="text" id="localOcorrencia" placeholder="Ex.: Rua X, próximo ao mercado" required>
+            <div class="form-hint">Informe um ponto de referência sem expor dados sensíveis.</div>
+          </div>
+
+          <div class="form-group">
+            <label for="descricaoOcorrencia">Descrição</label>
+            <textarea id="descricaoOcorrencia" placeholder="Descreva o que aconteceu, características e direção seguida."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="midiaOcorrencia">Foto ou vídeo</label>
+            <input type="file" id="midiaOcorrencia" accept="image/*,video/*">
+          </div>
+        </div>
+
+        <input type="hidden" id="latitudeOcorrencia">
+        <input type="hidden" id="longitudeOcorrencia">
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="fecharModalOcorrencia()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Enviar ocorrência</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay active" id="modalAuth" style="z-index: 2000;">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Acesso ao sistema</h2>
+    </div>
+
+    <div class="modal-body">
+      <div style="display:flex; gap:10px; margin-bottom:16px;">
+        <button type="button" class="btn btn-secondary" onclick="mostrarLogin()">Login</button>
+        <button type="button" class="btn btn-primary" onclick="mostrarCadastro()">Cadastro</button>
+      </div>
+
+      <form id="formLogin">
+        <div class="form-group">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" required>
+        </div>
+
+        <div class="form-group">
+          <label for="loginSenha">Senha</label>
+          <input type="password" id="loginSenha" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Entrar</button>
+      </form>
+
+      <form id="formCadastro" style="display:none;">
+        <div class="form-group">
+          <label for="cadNome">Nome</label>
+          <input type="text" id="cadNome" required>
+        </div>
+
+        <div class="form-group">
+          <label for="cadEmail">Email</label>
+          <input type="email" id="cadEmail" required>
+        </div>
+
+        <div class="form-group">
+          <label for="cadSenha">Senha</label>
+          <input type="password" id="cadSenha" required>
+        </div>
+
+        <div class="form-group">
+          <label for="cadTipo">Tipo</label>
+          <select id="cadTipo">
+            <option value="morador">Morador</option>
+            <option value="comerciante">Comerciante</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="display:flex; gap:8px; align-items:flex-start;">
+            <input type="checkbox" id="cadConsentimento" required style="width:auto; margin-top:4px;">
+            <span>Declaro que li e concordo com o tratamento dos meus dados para fins de segurança comunitária, conforme os princípios da LGPD.</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Cadastrar</button>
+      </form>
+    </div>
+    </div>
+    </div>
+
+  <div class="modal-overlay" id="modalListaOcorrencias">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Ocorrências cadastradas</h2>
+      <button class="close-btn" onclick="fecharListaOcorrencias()">×</button>
+    </div>
+
+    <div class="modal-body" id="listaOcorrenciasContainer">
+      <p>Carregando ocorrências...</p>
+    </div>
+  </div>
+</div>
+
+  <div class="modal-overlay" id="modalAlertas">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Alertas da comunidade</h2>
+      <button class="close-btn" onclick="fecharAlertas()">×</button>
+    </div>
+
+    <div class="modal-body" id="listaAlertasContainer">
+      <p>Carregando alertas...</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalPerfil">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Perfil do usuário</h2>
+      <button class="close-btn" onclick="fecharPerfil()">×</button>
+    </div>
+
+    <div class="modal-body" id="perfilContainer">
+      <p>Carregando perfil...</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalHistorico">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Histórico de ocorrências</h2>
+      <button class="close-btn" onclick="fecharHistorico()">×</button>
+    </div>
+
+    <div class="modal-body" id="historicoContainer">
+      <p>Carregando histórico...</p>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+   delete L.Icon.Default.prototype._getIconUrl;
+
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+  });
+
+  let mapa;
+  let marcadorSelecionado = null;
+  let marcadoresOcorrencias = [];
+
+
+  const modalAuth = document.getElementById('modalAuth');
+
+  const modalHistorico = document.getElementById('modalHistorico');
+
+  const modalListaOcorrencias = document.getElementById('modalListaOcorrencias');
+
+  const modalAlertas = document.getElementById('modalAlertas');
+
+  const modalPerfil = document.getElementById('modalPerfil');
+
+
+  const centroParqueNovoMundo = [-23.5149, -46.5778];
+
+  function atualizarRelogio() {
+  const agora = new Date();
+  const hora = agora.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  document.getElementById('clock').textContent = hora;
+
+  const horaPainel = document.getElementById('horaPainel');
+  if (horaPainel) {
+    horaPainel.textContent = hora;
+  }
+}
+
+  setInterval(atualizarRelogio, 1000);
+  atualizarRelogio();
+
+  function preencherDataHoraAutomatica() {
+    const agora = new Date();
+    const ano = agora.getFullYear();
+    const mes = String(agora.getMonth() + 1).padStart(2, '0');
+    const dia = String(agora.getDate()).padStart(2, '0');
+    const horas = String(agora.getHours()).padStart(2, '0');
+    const minutos = String(agora.getMinutes()).padStart(2, '0');
+
+    document.getElementById('dataOcorrencia').value = `${ano}-${mes}-${dia}`;
+    document.getElementById('horaOcorrencia').value = `${horas}:${minutos}`;
+  }
+
+  const modalOcorrencia = document.getElementById('modalOcorrencia');
+
+  function abrirModalOcorrencia() {
+    preencherDataHoraAutomatica();
+    modalOcorrencia.classList.add('active');
+  }
+
+  function fecharModalOcorrencia() {
+    modalOcorrencia.classList.remove('active');
+  }
+
+  modalOcorrencia.addEventListener('click', function (e) {
+    if (e.target === modalOcorrencia) {
+      fecharModalOcorrencia();
+    }
+  });
+
+  function acionarAlerta() {
+    alert('Alerta geral acionado com sucesso.');
+  }
+
+ async function logout() {
+  try {
+    const resposta = await fetch('/api/auth/logout', {
+      method: 'POST'
+    });
+
+    const dados = await resposta.json();
+    alert(dados.mensagem || 'Logout realizado.');
+
+    modalAuth.classList.add('active');
+
+    if (typeof modalPerfil !== 'undefined') {
+      modalPerfil.classList.remove('active');
+    }
+  } catch (erro) {
+    console.error(erro);
+    alert('Erro ao sair.');
+  }
+}
+
+
+function abrirHistorico() {
+  modalHistorico.classList.add('active');
+  carregarHistorico();
+}
+
+function fecharHistorico() {
+  modalHistorico.classList.remove('active');
+}
+
+async function carregarHistorico() {
+  const container = document.getElementById('historicoContainer');
+
+  try {
+    const resposta = await fetch('/api/ocorrencias');
+    const dados = await resposta.json();
+
+    if (!dados.ocorrencias || dados.ocorrencias.length === 0) {
+      container.innerHTML = '<p>Nenhum registro encontrado.</p>';
+      return;
+    }
+
+    container.innerHTML = dados.ocorrencias.map(item => `
+      <div style="border:1px solid #e5e7eb; border-radius:14px; padding:12px; margin-bottom:10px; background:#f9fafb;">
+        <strong style="text-transform: capitalize;">${item.tipo}</strong><br>
+        <span><b>Local:</b> ${item.local_ocorrencia || ''}</span><br>
+        <span><b>Data:</b> ${item.data_ocorrencia || ''}</span><br>
+        <span><b>Hora:</b> ${item.hora_ocorrencia || ''}</span><br>
+        <span><b>Descrição:</b> ${item.descricao || ''}</span><br>
+        <span><b>Usuário:</b> ${item.usuario_nome || ''}</span><br>
+
+        <div style="margin-top:12px;">
+          <button
+            class="btn btn-secondary"
+            style="background:#dc2626; color:white;"
+            onclick="apagarOcorrencia(${item.id})"
+          >
+            Apagar registro
+          </button>
+        </div>
+      </div>
+    `).join('');
+  } catch (erro) {
+    console.error('Erro ao carregar histórico:', erro);
+    container.innerHTML = '<p>Erro ao carregar histórico.</p>';
+  }
+}
+
+async function apagarOcorrencia(id) {
+  const confirmar = confirm('Tem certeza que deseja apagar esta ocorrência?');
+  if (!confirmar) return;
+
+  try {
+    const resposta = await fetch(`/api/ocorrencias/${id}`, {
+      method: 'DELETE'
+    });
+
+    const dados = await resposta.json();
+
+    if (!resposta.ok) {
+      alert(dados.erro || 'Erro ao apagar ocorrência.');
+      return;
+    }
+
+    alert(dados.mensagem || 'Ocorrência apagada com sucesso.');
+
+    await carregarHistorico();
+    await carregarOcorrenciasNoMapa();
+  } catch (erro) {
+    console.error('Erro ao apagar ocorrência:', erro);
+    alert('Erro ao apagar ocorrência.');
+  }
+}
+
+async function buscarEnderecoPorCoordenadas(lat, lng) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+    const resposta = await fetch(url, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    const dados = await resposta.json();
+
+    if (dados && dados.display_name) {
+      document.getElementById('localOcorrencia').value = dados.display_name;
+    } else {
+      document.getElementById('localOcorrencia').value = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+    }
+  } catch (erro) {
+    console.error('Erro ao buscar endereço por coordenadas:', erro);
+    document.getElementById('localOcorrencia').value = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+  }
+}
+
+
+async function buscarEndereco() {
+  const texto = document.getElementById('localOcorrencia').value.trim();
+
+  if (!texto) {
+    alert('Digite um local para pesquisar.');
+    return;
+  }
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(texto)}`;
+    const resposta = await fetch(url, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    const dados = await resposta.json();
+
+    if (!dados || dados.length === 0) {
+      alert('Local não encontrado.');
+      return;
+    }
+
+    const lugar = dados[0];
+    const lat = Number(lugar.lat);
+    const lng = Number(lugar.lon);
+
+    document.getElementById('latitudeOcorrencia').value = lat;
+    document.getElementById('longitudeOcorrencia').value = lng;
+
+    if (marcadorSelecionado) {
+      mapa.removeLayer(marcadorSelecionado);
+    }
+
+    marcadorSelecionado = L.marker([lat, lng]).addTo(mapa)
+      .bindPopup(lugar.display_name)
+      .openPopup();
+
+    mapa.setView([lat, lng], 17);
+
+    document.getElementById('localOcorrencia').value = lugar.display_name;
+  } catch (erro) {
+    console.error('Erro ao buscar endereço:', erro);
+    alert('Erro ao buscar endereço.');
+  }
+}
+
+function abrirPerfil() {
+  modalPerfil.classList.add('active');
+  carregarPerfil();
+}
+
+function fecharPerfil() {
+  modalPerfil.classList.remove('active');
+}
+
+async function carregarPerfil() {
+  const container = document.getElementById('perfilContainer');
+
+  try {
+    const resposta = await fetch('/api/auth/me');
+    const dados = await resposta.json();
+
+    if (!dados.autenticado) {
+      container.innerHTML = '<p>Usuário não autenticado.</p>';
+      return;
+    }
+
+    const usuario = dados.usuario;
+
+    container.innerHTML = `
+      <div style="line-height: 1.9;">
+        <p><b>Nome:</b> ${usuario.nome || ''}</p>
+        <p><b>Email:</b> ${usuario.email || ''}</p>
+        <p><b>Tipo:</b> ${usuario.tipo || ''}</p>
+        <p><b>Consentimento LGPD:</b> ${usuario.consentimento_lgpd ? 'Sim' : 'Não'}</p>
+
+        <div style="margin-top: 18px;">
+          <button class="btn btn-secondary" onclick="logout()">Sair da conta</button>
+        </div>
+      </div>
+    `;
+  } catch (erro) {
+    console.error('Erro ao carregar perfil:', erro);
+    container.innerHTML = '<p>Erro ao carregar perfil.</p>';
+  }
+}
+
+
+
+function abrirAlertas() {
+  modalAlertas.classList.add('active');
+  carregarAlertas();
+}
+
+function fecharAlertas() {
+  modalAlertas.classList.remove('active');
+}
+
+function tipoEhAlerta(tipo) {
+  const t = (tipo || '').toLowerCase();
+  return t === 'roubo' || t === 'invasao' || t === 'suspeita';
+}
+
+async function carregarAlertas() {
+  const container = document.getElementById('listaAlertasContainer');
+
+  try {
+    const resposta = await fetch('/api/ocorrencias');
+    const dados = await resposta.json();
+
+    if (!dados.ocorrencias || dados.ocorrencias.length === 0) {
+      container.innerHTML = '<p>Nenhum alerta registrado.</p>';
+      return;
+    }
+
+    const alertas = dados.ocorrencias.filter(item => tipoEhAlerta(item.tipo));
+
+    if (alertas.length === 0) {
+      container.innerHTML = '<p>Nenhum alerta crítico no momento.</p>';
+      return;
+    }
+
+    container.innerHTML = alertas.map(item => `
+      <div style="border:1px solid #fecaca; border-radius:14px; padding:12px; margin-bottom:10px; background:#fff1f2;">
+        <strong style="color:#b91c1c; text-transform: capitalize;">${item.tipo}</strong><br>
+        <span><b>Local:</b> ${item.local_ocorrencia || ''}</span><br>
+        <span><b>Data:</b> ${item.data_ocorrencia || ''}</span><br>
+        <span><b>Hora:</b> ${item.hora_ocorrencia || ''}</span><br>
+        <span><b>Descrição:</b> ${item.descricao || ''}</span><br>
+        <span><b>Usuário:</b> ${item.usuario_nome || ''}</span>
+      </div>
+    `).join('');
+  } catch (erro) {
+    console.error('Erro ao carregar alertas:', erro);
+    container.innerHTML = '<p>Erro ao carregar alertas.</p>';
+  }
+}
+
+
+function abrirListaOcorrencias() {
+  modalListaOcorrencias.classList.add('active');
+  carregarListaOcorrencias();
+}
+
+function fecharListaOcorrencias() {
+  modalListaOcorrencias.classList.remove('active');
+}
+
+async function carregarListaOcorrencias() {
+  const container = document.getElementById('listaOcorrenciasContainer');
+
+  try {
+    const resposta = await fetch('/api/ocorrencias');
+    const dados = await resposta.json();
+
+    if (!dados.ocorrencias || dados.ocorrencias.length === 0) {
+      container.innerHTML = '<p>Nenhuma ocorrência cadastrada.</p>';
+      return;
+    }
+
+    container.innerHTML = dados.ocorrencias.map(item => `
+      <div style="border:1px solid #e5e7eb; border-radius:14px; padding:12px; margin-bottom:10px; background:#f9fafb;">
+        <strong style="text-transform: capitalize;">${item.tipo}</strong><br>
+        <span><b>Local:</b> ${item.local_ocorrencia || ''}</span><br>
+        <span><b>Data:</b> ${item.data_ocorrencia || ''}</span><br>
+        <span><b>Hora:</b> ${item.hora_ocorrencia || ''}</span><br>
+        <span><b>Descrição:</b> ${item.descricao || ''}</span><br>
+        <span><b>Usuário:</b> ${item.usuario_nome || ''}</span>
+      </div>
+    `).join('');
+  } catch (erro) {
+    console.error('Erro ao carregar lista de ocorrências:', erro);
+    container.innerHTML = '<p>Erro ao carregar ocorrências.</p>';
+  }
+}
+
+
+  function filtrarOcorrencias() {
+    alert('Filtro pode ficar para a próxima etapa.');
+  }
+
+  function mostrarLogin() {
+  document.getElementById('formLogin').style.display = 'block';
+  document.getElementById('formCadastro').style.display = 'none';
+}
+
+function mostrarCadastro() {
+  document.getElementById('formLogin').style.display = 'none';
+  document.getElementById('formCadastro').style.display = 'block';
+}
+
+async function verificarSessao() {
+  try {
+    const resposta = await fetch('/api/auth/me');
+    const dados = await resposta.json();
+
+    if (dados.autenticado) {
+      modalAuth.classList.remove('active');
+    } else {
+      modalAuth.classList.add('active');
+    }
+  } catch (erro) {
+    console.error('Erro ao verificar sessão:', erro);
+    modalAuth.classList.add('active');
+  }
+}
+
+
+
+  function iniciarMapa() {
+    mapa = L.map('mapa').setView(centroParqueNovoMundo, 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(mapa);
+
+    mapa.on('click', function (e) {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+
+      document.getElementById('latitudeOcorrencia').value = lat;
+document.getElementById('longitudeOcorrencia').value = lng;
+
+buscarEnderecoPorCoordenadas(lat, lng);
+
+      if (marcadorSelecionado) {
+        mapa.removeLayer(marcadorSelecionado);
+      }
+
+      marcadorSelecionado = L.marker([lat, lng]).addTo(mapa);
+    });
+
+    carregarOcorrenciasNoMapa();
+  }
+
+  function minhaLocalizacao() {
+    if (!navigator.geolocation) {
+      alert('Geolocalização não suportada neste dispositivo.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      function (posicao) {
+        const lat = posicao.coords.latitude;
+        const lng = posicao.coords.longitude;
+
+        mapa.setView([lat, lng], 17);
+
+        L.marker([lat, lng])
+          .addTo(mapa)
+          .bindPopup('Você está aqui')
+          .openPopup();
+
+        document.getElementById('localOcorrencia').value =
+          `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+
+        document.getElementById('latitudeOcorrencia').value = lat;
+        document.getElementById('longitudeOcorrencia').value = lng;
+      },
+      function (erro) {
+        console.error('Erro de geolocalização:', erro);
+        alert('Não foi possível obter sua localização.');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  }
+
+  function corPorTipo(tipo) {
+  switch ((tipo || '').toLowerCase()) {
+    case 'furto':
+      return 'orange';
+    case 'roubo':
+      return 'red';
+    case 'suspeita':
+      return 'blue';
+    case 'invasao':
+      return 'purple';
+    default:
+      return 'green';
+  }
+}
+
+  async function carregarOcorrenciasNoMapa() {
+  try {
+    marcadoresOcorrencias.forEach(marker => mapa.removeLayer(marker));
+    marcadoresOcorrencias = [];
+
+    const resposta = await fetch('/api/ocorrencias');
+    const dados = await resposta.json();
+
+    console.log('Ocorrências carregadas do banco:', dados);
+
+    if (!dados.ocorrencias) return;
+
+    document.getElementById('contadorOcorrencias').textContent = dados.ocorrencias.length;
+
+    const pontos = [];
+
+    for (const item of dados.ocorrencias) {
+      if (item.latitude && item.longitude) {
+        const lat = Number(item.latitude);
+        const lng = Number(item.longitude);
+
+        const marker = L.circleMarker(
+          [lat, lng],
+          {
+            radius: 10,
+            color: corPorTipo(item.tipo),
+            fillColor: corPorTipo(item.tipo),
+            fillOpacity: 0.85,
+            weight: 2
+          }
+        ).addTo(mapa).bindPopup(`
+          <strong>${item.tipo}</strong><br>
+          ${item.local_ocorrencia}<br>
+          ${item.descricao || ''}
+        `);
+
+        marcadoresOcorrencias.push(marker);
+        pontos.push([lat, lng]);
+      }
+    }
+
+    if (pontos.length === 1) {
+      mapa.setView(pontos[0], 16);
+    } else if (pontos.length > 1) {
+      mapa.fitBounds(pontos, { padding: [40, 40] });
+    }
+  } catch (erro) {
+    console.error('Erro ao carregar ocorrências:', erro);
+  }
+}
+
+  function atualizarMapa() {
+    carregarOcorrenciasNoMapa();
+  }
+
+  function abrirNoGoogleMaps() {
+    const lat = document.getElementById('latitudeOcorrencia').value;
+    const lng = document.getElementById('longitudeOcorrencia').value;
+
+    if (!lat || !lng) {
+      alert('Selecione um ponto no mapa primeiro.');
+      return;
+    }
+
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    window.open(url, '_blank');
+  }
+
+  document.getElementById('formLogin').addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  const body = {
+    email: document.getElementById('loginEmail').value,
+    senha: document.getElementById('loginSenha').value
+  };
+
+  try {
+    const resposta = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const dados = await resposta.json();
+
+    if (!resposta.ok) {
+      alert(dados.erro || 'Erro no login');
+      return;
+    }
+
+    alert('Login realizado com sucesso.');
+    modalAuth.classList.remove('active');
+    await carregarOcorrenciasNoMapa();
+  } catch (erro) {
+    console.error(erro);
+    alert('Erro ao fazer login.');
+  }
+});
+
+document.getElementById('formCadastro').addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  const body = {
+    nome: document.getElementById('cadNome').value,
+    email: document.getElementById('cadEmail').value,
+    senha: document.getElementById('cadSenha').value,
+    tipo: document.getElementById('cadTipo').value,
+    consentimento_lgpd: document.getElementById('cadConsentimento').checked
+  };
+
+  try {
+    const resposta = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const dados = await resposta.json();
+
+    if (!resposta.ok) {
+      alert(dados.erro || 'Erro no cadastro');
+      return;
+    }
+
+    alert('Cadastro realizado com sucesso.');
+    modalAuth.classList.remove('active');
+    await carregarOcorrenciasNoMapa();
+} catch (erro) {
+  console.error(erro);
+  alert(erro.message || 'Erro ao cadastrar.');
+}
+});
+
+document.getElementById('formOcorrencia').addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  const formData = new FormData();
+  formData.append('tipo', document.getElementById('tipoOcorrencia').value);
+  formData.append('data', document.getElementById('dataOcorrencia').value);
+  formData.append('hora', document.getElementById('horaOcorrencia').value);
+  formData.append('local', document.getElementById('localOcorrencia').value);
+  formData.append('descricao', document.getElementById('descricaoOcorrencia').value);
+  formData.append('latitude', document.getElementById('latitudeOcorrencia').value || '');
+  formData.append('longitude', document.getElementById('longitudeOcorrencia').value || '');
+
+  const arquivo = document.getElementById('midiaOcorrencia').files[0];
+  if (arquivo) {
+    formData.append('midia', arquivo);
+  }
+
+  try {
+    const resposta = await fetch('/api/ocorrencias', {
+      method: 'POST',
+      body: formData
+    });
+
+    const dados = await resposta.json();
+
+    if (!resposta.ok) {
+      throw new Error(dados.erro || 'Erro ao enviar ocorrência');
+    }
+
+    alert('Ocorrência registrada com sucesso.');
+
+    this.reset();
+    document.getElementById('latitudeOcorrencia').value = '';
+    document.getElementById('longitudeOcorrencia').value = '';
+
+    if (marcadorSelecionado) {
+      mapa.removeLayer(marcadorSelecionado);
+      marcadorSelecionado = null;
+    }
+
+    fecharModalOcorrencia();
+    await carregarOcorrenciasNoMapa();
+  } catch (erro) {
+    console.error(erro);
+    alert(erro.message || 'Não foi possível registrar a ocorrência.');
+  }
+});
+
+  window.addEventListener('load', async () => {
+  iniciarMapa();
+
+  setTimeout(() => {
+    mapa.invalidateSize();
+  }, 300);
+
+  await verificarSessao();
+});
+</script>
+
